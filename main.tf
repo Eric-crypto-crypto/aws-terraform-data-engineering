@@ -66,3 +66,36 @@ resource "aws_glue_crawler" "yellow_tripdata" {
     path = "s3://${aws_s3_bucket.data_lake_bucket.bucket}/raw/yellow/"
   }
 }
+
+resource "aws_glue_job" "yellow_tripdata_spark" {
+  name              = "nyc-yellow-tripdata-parquet"
+  role_arn          = aws_iam_role.glue_job.arn
+  glue_version      = "5.0"
+  worker_type       = "G.1X"
+  number_of_workers = 2
+  max_retries       = 0
+  timeout           = 10
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.data_lake_bucket.bucket}/scripts/yellow_tripdata_to_parquet.py"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--enable-metrics"                   = "true"
+    "--enable-continuous-cloudwatch-log" = "true"
+  }
+}
+
+resource "aws_glue_crawler" "yellow_parquet" {
+  name          = "nyc-yellow-parquet"
+  role          = aws_iam_role.glue_crawler.arn
+  database_name = aws_glue_catalog_database.dataset.name
+  table_prefix  = "parquet_"
+
+  s3_target {
+    path = "s3://${aws_s3_bucket.data_lake_bucket.bucket}/processed/yellow/"
+  }
+}
