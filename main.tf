@@ -56,3 +56,13 @@ resource "aws_s3_bucket_public_access_block" "block_public_access" {
 resource "aws_glue_catalog_database" "dataset" {
   name = var.dataset_name
 }
+
+resource "aws_glue_crawler" "yellow_tripdata" {
+  name          = "nyc-yellow-2019-01"
+  role          = aws_iam_role.glue_crawler.arn
+  database_name = aws_glue_catalog_database.dataset.name
+
+  s3_target {
+    path = "s3://${aws_s3_bucket.data_lake_bucket.bucket}/raw/yellow/"
+  }
+}
